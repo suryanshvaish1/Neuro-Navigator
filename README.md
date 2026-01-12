@@ -1,4 +1,4 @@
-# 🏥 AI Doctor 2.0: Multimodal Clinical Assistant
+# 🏥 HealthCareAI
 **Empowering Healthcare with Vision, Voice, and Explainable AI (XAI)**
 
 ![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
@@ -48,3 +48,4 @@ Unlike standard "black-box" models, this system provides a visual grounding of i
 ├── .env                      # API Keys (Excluded from Git)
 ├── .env.example              # Template for environment variables
 └── requirements.txt          # Project dependencies
+
