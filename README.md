@@ -1,51 +1,17 @@
-# 🏥 HealthCareAI
-**Empowering Healthcare with Vision, Voice, and Explainable AI (XAI)**
+# 🧩 Neuro-Navigator: Energy-Adaptive Focus Ally
 
-![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
-![Gradio](https://img.shields.io/badge/UI-Gradio-orange.svg)
-![Llama4](https://img.shields.io/badge/Model-Llama--4--Scout-green.svg)
-![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)
+## 🚀 Overview
+Neuro-Navigator is a comprehensive multimodal application designed to empower neurodiverse individuals (ADHD/Dyslexia). It transforms overwhelming daily routines into simple, manageable steps by aligning tasks with the user's unique biological rhythms.
 
-## 🌟 Overview
-AI Doctor 2.0 is a professional-grade medical diagnostic assistant designed for **Neurathon 2026**. It bridges the gap between complex AI and clinical trust by combining **Vision (Image Analysis)**, **Voice (Patient Intake)**, and **Reasoning Traces (Explainability)**. 
-
-Unlike standard "black-box" models, this system provides a visual grounding of its findings and a human-like logical deduction path to assist healthcare professionals in remote or underserved areas.
-
----
-
-## 🚀 Key Features
-
-### 1. Multimodal Patient Intake
-* **Voice-to-Text (STT):** Uses **OpenAI Whisper (via Groq)** for high-accuracy transcription of patient symptoms.
-* **Vision Analysis:** Powered by **Llama-4-Scout**, capable of identifying anomalies in X-rays, skin lesions, and neurological scans.
-
-### 2. Explainable AI (XAI) & Visual Grounding
-* **Reasoning Trace:** Instead of a single diagnosis, the AI generates a clinical logic path (Observation -> History -> Deduction).
-* **Anomaly Highlighting:** Dynamically draws a semi-transparent bounding box over detected medical anomalies using **Pillow (PIL)**.
-
-### 3. Professional Medical Dashboard
-* **Doctor-in-the-Loop UI:** A clean, sidebar-driven dashboard built with Gradio 5.
-* **Human-Like Interaction:** Empathetic, professional responses converted to high-fidelity audio via **ElevenLabs**.
-
----
+## ✨ Core Innovations
+* **Energy-Adaptive Scheduler:** Utilizes NLP to detect sentiment and fatigue cues in the user's voice, automatically "downshifting" task complexity to prevent burnout.
+* **The "Salami Slicer":** Uses Llama-4-Scout to decompose complex visual scenes (e.g., a messy room) or large documents into <10-minute micro-tasks.
+* **Gamified Reward Structure:** Integrates a real-time XP system to provide the immediate dopamine feedback necessary for sustained motivation.
+* **Low-Arousal AI Companion:** A multimodal voice interface (Groq + ElevenLabs) providing "Virtual Body Doubling" to reduce executive dysfunction.
 
 ## 🛠️ Tech Stack
-* **Language:** Python 3.10+
-* **Inference Engine:** Groq (Llama-4-Scout-17B & Whisper-Large-v3)
-* **Voice Synthesis:** ElevenLabs (Turbo v2.5)
-* **Interface:** Gradio 5 (Custom CSS/Theme)
-* **Image Processing:** Pillow (PIL)
-
----
-
-## 📂 Project Structure
-```text
-.
-├── brain_of_the_doctor.py    # Vision analysis & reasoning logic
-├── voice_of_the_patient.py   # Transcription (STT) handling
-├── voice_of_the_doctor.py    # Speech synthesis (TTS) handling
-├── gradio_app.py             # Main Medical Dashboard UI
-├── .env                      # API Keys (Excluded from Git)
-├── .env.example              # Template for environment variables
-└── requirements.txt          # Project dependencies
-
+- **Frontend:** Gradio
+- **LLM/Vision:** Llama-4-Scout (via Groq/Brain Module)
+- **STT:** Whisper-Large-v3 (via Groq)
+- **TTS:** ElevenLabs (Empathetic/Calm Voice)
+- **Logic:** Python-based Energy Calibration & Random XP Engine
