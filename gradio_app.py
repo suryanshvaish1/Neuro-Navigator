@@ -1,8 +1,9 @@
 import os
+import random
 from dotenv import load_dotenv
 import gradio as gr
 
-# Load environment variables from .env
+# Load environment variables
 load_dotenv()
 
 # Import your custom modules
@@ -10,162 +11,95 @@ from brain_of_the_doctor import encode_image, analyze_image_with_query
 from voice_of_the_patient import transcribe_with_groq
 from voice_of_the_doctor import text_to_speech_with_elevenlabs
 
-# System prompt for the AI Doctor
-import os
-from dotenv import load_dotenv
-import gradio as gr
+# --- Energy Detection Logic ---
+def get_energy_context(user_text):
+    low_energy_cues = ["tired", "exhausted", "burnout", "overwhelmed", "stressed", "too much", "can't focus", "heavy"]
+    high_energy_cues = ["ready", "motivated", "let's go", "energy", "excited", "focus", "sharp"]
 
-# Load environment variables from .env
-load_dotenv()
+    text = user_text.lower()
+    if any(cue in text for cue in low_energy_cues):
+        return "\n\nCRITICAL CONTEXT: The user is feeling LOW ENERGY/OVERWHELMED. Give only ONE very small task and suggest a 5-minute break."
+    elif any(cue in text for cue in high_energy_cues):
+        return "\n\nCRITICAL CONTEXT: The user has HIGH ENERGY. You can suggest a focused 25-minute sprint."
+    return "\n\nCRITICAL CONTEXT: The user has balanced energy. Provide 3 micro-steps."
 
-# Import your custom modules
-from brain_of_the_doctor import encode_image, analyze_image_with_query
-from voice_of_the_patient import transcribe_with_groq
-from voice_of_the_doctor import text_to_speech_with_elevenlabs
+# --- Updated System Prompt ---
+SYSTEM_PROMPT = """You are the 'Neuro-Navigator,' a supportive and low-arousal AI coach for neurodiverse individuals (ADHD/Dyslexia). 
+Your goal is to reduce executive dysfunction and cognitive load.
 
-# System prompt for the AI Doctor
-SYSTEM_PROMPT = """You are a warm, empathetic, and highly skilled physician. 
-Your goal is to make the patient feel heard and cared for. 
-
-When you respond, speak naturally as if we are sitting in a clinic together. 
-Do not use robotic headers like '[OBSERVATION]'. Instead, weave your reasoning into a conversation.
-
-Follow this flow:
-1. GREETING & EMPATHY: Start by addressing the patient's symptoms with genuine concern (e.g., 'I'm sorry you're dealing with that discomfort...').
-2. OBSERVATION & DEDUCTION: Mention what you noticed in the image and how it relates to what they told you (e.g., 'Looking at the photo, that redness near the edge suggests...').
-3. PLAN: Offer a clear diagnosis and a gentle recommendation for next steps.
-
-Avoid overly formal transitions like 'Furthermore' or 'Consequently'. Use contractions like 'I've' or 'You're' to sound more human."""
+Guidelines:
+1. GREETING: Start with a calm, validating opening.
+2. ANALYSIS: If an image is provided, break it down into 3 simple anchors.
+3. THE SALAMI SLICER: Break tasks into 'micro-steps' (<10 mins).
+4. DYSLEXIA FRIENDLY: Use short sentences and bullet points.
+5. RSD AWARE: Use supportive, non-critical language."""
 
 def process_inputs(audio_filepath, image_filepath):
-    # 1. Validation
     if audio_filepath is None:
-        return "No audio provided", "Please describe your symptoms via audio.", None
+        return "Waiting for your voice...", "Please tap the mic to share what's on your mind.", None, "0 XP"
 
-    # 2. Speech-to-Text (Patient Voice)
+    # 1. Speech-to-Text
     try:
-        speech_to_text_output = transcribe_with_groq(
+        user_speech_text = transcribe_with_groq(
             GROQ_API_KEY=os.environ.get("GROQ_API_KEY"), 
             audio_filepath=audio_filepath,
             stt_model="whisper-large-v3"
         )
     except Exception as e:
-        return f"STT Error: {str(e)}", "Speech transcription failed.", None
+        return f"Audio Error: {str(e)}", "I couldn't quite hear that.", None, "0 XP"
 
-    # 3. Vision Analysis (Doctor's Brain) using the verified active model
-    doctor_response = ""
-    if image_filepath:
-        # We ask the model for its Reasoning Trace
-        doctor_response = analyze_image_with_query(
-            query=SYSTEM_PROMPT + "\nPatient says: " + speech_to_text_output, 
-            encoded_image=encode_image(image_filepath), 
-            model="meta-llama/llama-4-scout-17b-16e-instruct" 
-        ) 
-    else:
-        doctor_response = "Please provide an image for a full clinical reasoning trace."
+    # 2. Energy Analysis & Prompt Construction
+    energy_context = get_energy_context(user_speech_text)
+    full_query = f"{SYSTEM_PROMPT}{energy_context}\nUser Input: {user_speech_text}"
 
-    # 4. Text-to-Speech (Doctor's Voice)
+    # 3. Vision & Task Analysis
     try:
-        voice_of_doctor_path = text_to_speech_with_elevenlabs(
-            input_text=doctor_response, 
-            output_filepath="final.mp3"
-        ) 
-    except Exception as e:
-        # Prevents the UI from hanging if there is a permission error
-        print(f"ElevenLabs Error: {e}")
-        voice_of_doctor_path = None
-
-    return speech_to_text_output, doctor_response, voice_of_doctor_path
-
-# --- UI Layout matches your previous successful run ---
-with gr.Blocks(title="AI Doctor 2.0") as demo:
-    gr.Markdown("# 🏥 AI Doctor: Vision & Voice Analysis")
-    gr.Markdown("Upload a medical image and explain your symptoms using the microphone.")
-    
-    with gr.Row():
-        with gr.Column():
-            audio_input = gr.Audio(sources=["microphone"], type="filepath", label="Describe Symptoms")
-            image_input = gr.Image(type="filepath", label="Medical Image")
-            submit_btn = gr.Button("Submit", variant="primary")
-            
-        with gr.Column():
-            stt_output = gr.Textbox(label="Speech to Text")
-            response_output = gr.Textbox(label="Doctor's Response")
-            voice_output = gr.Audio(label="Doctor's Voice")
-
-    submit_btn.click(
-        fn=process_inputs,
-        inputs=[audio_input, image_input],
-        outputs=[stt_output, response_output, voice_output]
-    )
-
-if __name__ == "__main__":
-    demo.launch(debug=True)
-
-def process_inputs(audio_filepath, image_filepath):
-    # 1. Validation
-    if audio_filepath is None:
-        return "No audio provided", "Please describe your symptoms via audio.", None
-
-    # 2. Speech-to-Text (Patient Voice)
-    try:
-        speech_to_text_output = transcribe_with_groq(
-            GROQ_API_KEY=os.environ.get("GROQ_API_KEY"), 
-            audio_filepath=audio_filepath,
-            stt_model="whisper-large-v3"
+        coach_response = analyze_image_with_query(
+            query=full_query,
+            encoded_image=encode_image(image_filepath) if image_filepath else None,
+            model="meta-llama/llama-4-scout-17b-16e-instruct"
         )
-    except Exception as e:
-        return f"STT Error: {str(e)}", "Speech transcription failed.", None
+    except Exception:
+        coach_response = "I'm here to listen. Let's focus on what you told me."
 
-    # 3. Vision Analysis (Doctor's Brain) using the verified active model
-    doctor_response = ""
-    if image_filepath:
-        try:
-            # Using your active Llama 4 Scout model for fast, accurate vision analysis
-            doctor_response = analyze_image_with_query(
-                query=SYSTEM_PROMPT + speech_to_text_output,
-                encoded_image=encode_image(image_filepath),
-                model="meta-llama/llama-4-scout-17b-16e-instruct"
-            )
-        except Exception as e:
-            print(f"Vision Error: {e}")
-            doctor_response = "I encountered an error connecting to my vision systems. Please check your API key."
-    else:
-        doctor_response = "No image provided for me to analyze."
-
-    # 4. Text-to-Speech (Doctor's Voice)
+    # 4. Text-to-Speech
     try:
-        voice_of_doctor_path = text_to_speech_with_elevenlabs(
-            input_text=doctor_response, 
-            output_filepath="final.mp3"
+        coach_voice_path = text_to_speech_with_elevenlabs(
+            input_text=coach_response, 
+            output_filepath="navigator_voice.mp3"
         ) 
-    except Exception as e:
-        # Prevents the UI from hanging if there is a permission error
-        print(f"ElevenLabs Error: {e}")
-        voice_of_doctor_path = None
+    except Exception:
+        coach_voice_path = None
 
-    return speech_to_text_output, doctor_response, voice_of_doctor_path
+    # 5. Gamification: Calculate "XP" earned for the session
+    xp_earned = random.randint(15, 50)
+    xp_display = f"✨ +{xp_earned} Focus XP Gained!"
 
-# --- UI Layout matches your previous successful run ---
-with gr.Blocks(title="AI Doctor 2.0") as demo:
-    gr.Markdown("# 🏥 AI Doctor: Vision & Voice Analysis")
-    gr.Markdown("Upload a medical image and explain your symptoms using the microphone.")
+    return user_speech_text, coach_response, coach_voice_path, xp_display
+
+# --- UI Layout ---
+with gr.Blocks(theme=gr.themes.Soft(), title="Neuro-Navigator 1.0") as demo:
+    gr.Markdown("# 🧩 Neuro-Navigator: Your Daily Focus Ally")
     
     with gr.Row():
-        with gr.Column():
-            audio_input = gr.Audio(sources=["microphone"], type="filepath", label="Describe Symptoms")
-            image_input = gr.Image(type="filepath", label="Medical Image")
-            submit_btn = gr.Button("Submit", variant="primary")
+        # Input Section
+        with gr.Column(scale=1):
+            audio_input = gr.Audio(sources=["microphone"], type="filepath", label="Voice Mind-Dump")
+            image_input = gr.Image(type="filepath", label="Task Vision")
+            submit_btn = gr.Button("Help me focus ✨", variant="primary")
             
-        with gr.Column():
-            stt_output = gr.Textbox(label="Speech to Text")
-            response_output = gr.Textbox(label="Doctor's Response")
-            voice_output = gr.Audio(label="Doctor's Voice")
+        # Output Section
+        with gr.Column(scale=1):
+            with gr.Row():
+                xp_counter = gr.Label(value="0 Focus XP", label="Session Rewards")
+            stt_output = gr.Textbox(label="What I heard you say:", interactive=False)
+            response_output = gr.Markdown() 
+            voice_output = gr.Audio(label="Listen to your Coach", autoplay=True)
 
     submit_btn.click(
         fn=process_inputs,
         inputs=[audio_input, image_input],
-        outputs=[stt_output, response_output, voice_output]
+        outputs=[stt_output, response_output, voice_output, xp_counter]
     )
 
 if __name__ == "__main__":
